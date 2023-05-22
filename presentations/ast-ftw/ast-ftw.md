@@ -18,7 +18,7 @@ section { /* LIGHT */
     background-repeat: no-repeat;
 }
 h1, h2, h3, ul, li { /* LIGHT */
-    color:      #082a66;
+    color: #082a66;
 }
 
 section.center p {
@@ -43,6 +43,10 @@ section.clouds p { /* DARK */
 section.clouds h1 {
     background-image: none;
     font-size: 250%;
+}
+
+section.center {
+    text-align: center;
 }
 section::after {
     color: rgba(0.5, 0.5, 0.5, 0.33);
@@ -73,8 +77,6 @@ footer::after {
     opacity: 0.66;
     content: '';
 }
-
-
 </style>
 
 <style scoped>
@@ -94,266 +96,203 @@ José Pedro Dias
 
 ---
 
-<!-- _backgroundImage: url('./bg/dark-gradient.png')
-_color: white -->
+<!-- _class: clouds -->
 
-*A multiplayer game is one where the actions of each participant influence the state of the game for all.*
+# What is an AST?
 
-Multiplayer games can span a whole range of genres and they can be implemented with different underlying technologies and abstractions.
+---
+
+<!-- _backgroundImage: url('./bg/TeamsBackgrounds_5.jpg')
+_color: white
+_class: center -->
+
+AST stands for abstract syntax tree.
+It's a structured representation of source code
+for a given language.
+
+---
+
+# JS and ASTs
+
+ASTs can be generated and used on any programming language.
+Javascript has been leveraging of ASTs for some time now due to the
+ever-evolving nature of the browser ecosystem, mainly to:
+- allow old browsers to support newer syntax by means of rewriting it with older, more supported building blocks [babel](https://babeljs.io/repl)
+- to test drive ES language feature proposal implementations [TC39](https://tc39.es/)
+- adhering to code best practices, normalizing code formatting [eslint](https://eslint.org/), [prettier](https://prettier.io/)...)
+
+---
+
+# Scope for today
+
+The ideas presented here can be applied to other languages.
+Even for Javascript & Typescript, there are multiple parsers and transformer solutions.
+
+Today we'll focus on using [JSCodeShift](https://github.com/facebook/jscodeshift) to  manipulate Typescript code: it's powerful and covers both languages we profusely use at Arkadium (TS being a superset of JS).
+
+---
+
+# What about text search and replace? 1/2
+
+We may want to assess the consumers of a given class method to see if we can deprecate it (of games repos using core, for example).
+Or maybe we found a use case where the method potentially misbehaves and want to see how it's being exercised.
+
+Oftentimes we can make do with search, particularly if you're regexp skills are great and that feature isn't being creatively exercised...
+
+---
+
+# What about text search and replace? 2/2
+
+The thing is, imports can be renamed, instances can be assigned any variable name, function calls can receive complex inline arguments.
+
+And if you want to take the extra step of not only finding but massaging the found hits, its unlikely you'll be able to do so using search and replace!
+
+It's always a tradeoff. Do we need to pick some examples or find ALL calls? Is searching by text returning too many false hits? Is this to be used only once?
+
+---
+
+# What does it look like
+
+https://ts-ast-viewer.com/
+https://astexplorer.net/
+
+Note: *the format we'll be using for our transformations slightly differs,
+but this visualization is similar enough for demo purposes*
+
+---
+
+# Common AST applications
+
+code in lang X → AST → search for patterns in the tree
+code in lang X → AST → manipulate tree → changed code in lang X
+code in lang X → AST → manipulate tree → equivalent code in lang Y
 
 ---
 
 <!-- _class: clouds -->
 
-# classify games
----
-
-<!-- _class: red -->
-# action cadence
-
-- **turn based** (tic-tac-toe, worms, monopoly)
-- **real-time** (age of empires, quake, table football)
-
-Turn based games are easier to reason about and demand less of the server.
+# Practical examples
 
 ---
+# example: Search
 
-# game state values
+*Find `require` calls. Tag them with todo for replacing them with ESM imports later*
 
-- **discrete values** (checkers, chess, connect 4)
-- **continuous values** (quake, mario kart)
+```ts
+const fs = require('fs');
+```
 
-These call for different approaches in terms of animation and AI.
-Game may simultaneously feature data of both kinds.
+```ts
+const fs = require('fs');// TODO
+```
+
+[avoidRequires.ts](https://github.com/JosePedroDias/ts-transform/blob/main/src/avoidRequires.ts)
 
 ---
 
-# state visibility
+# example: Edit
 
-- **completely open** (tic-tac-toe, snake)
-- **partially hidden state**
-    - RTS games: fog-of-war
-    - card games: hidden hands from other players
-    - FPS games: BSP + camera frustum determine what each player sees
+*The `BitmapText` constructor options argument changed from core 1 to core 2.
+Could rewrite it for simple use cases?*
 
----
+```ts
+const bt = new BitmapText('some text', {
+    font: '32px sans-serif'
+});
+```
 
-<!-- _class: clouds -->
+```ts
+new BitmapText('some text', {
+    fontSize: 32,
+    fontName: 'sans-serif'
+});
+```
 
-# updating state and tick rate
----
-
-# game state update
-
-Every game is expected to call a function which given the **current game state** and **new events** computes an **updated game state**.
-
-On **turn based games** this function can be called **as each event arrives** and update state at the rate of arrival.
-On **real-time games** a **constant period of time** is used. All events in that period serve as inputs to determine the next state.
+[changeConstructorCall.ts](https://github.com/JosePedroDias/ts-transform/blob/main/src/changeConstructorCall.ts)
 
 ---
 
-<!-- _class: center -->
+# example: Complex manipulations
 
-## rock paper scissors
+*Group all imports from the same package. Rename packages. Rename a subset of deprecated symbols (Container to IOCContainer). Avoid targeting symbols via dist paths. Sort imported symbols.*
 
-![h:300](figures/auth-rock-paper-scissors.png)
+```ts
+import {Inject} from '@arkadium/game-core';
+import {AnimateViewBase} from '@arkadium/game-core/dist/Base/AnimateViewBase';
+import {Container} from '@arkadium/game-core';
+```
 
----
+```ts
+import { AnimateViewBase, Inject, IOCContainer } from '@arkadium/game-core-engine';
+```
 
-<!-- _class: center -->
-
-## tictactoe
-
-![h:420 center](figures/auth-tictactoe.png)
-
----
-
-## realtime examples
-
-![h:220](figures/auth-realtime.png)
-
----
-
-# tick rate
-
-The tick rate determines **how frequently the update function runs**.
-A game with a 20 fps tick rate means it groups incoming player events in slots of 1s/20 = 50ms. After each tick, an update function with this signature is run:
-
-`(events, state) -> state'`
-
-As the result of this, clients are told the new state (subject to optimizations).
-
-The tick rate **depends on the nature of the game**. Some genres allow for fewer tick rates and heavy use of interpolation while others need more frequent updates to be computed.
+[groupPackages.ts](https://github.com/JosePedroDias/ts-transform/blob/main/src/groupPackages.ts)
 
 ---
 
 <!-- _class: clouds -->
 
-# Topologies
----
-
-# multiplayer topologies
-
-- **authoritative server** aka **client+server**
-    all players/clients **submit their actions to the server**. game **state gets computed there** and distributed back to all players
-- **relay** or **peer to peer**
-    all players/clients have their own local views of the game state and **share their actions to others** so **others compute** them
-- **authoritative with client-side prediction** aka **lockstep+rollback**
-    players **submit their actions to the server** and also **run a local simulation**, used to optimistically render the player actions earlier (subject to corrections from server)
+# Other considerations
 
 ---
 
-## authoritative and P2P topologies
+# Limitations
 
-![h:400 authoritative](figures/topo-auth.png) ![h:400 p2p](figures/topo-p2p.png)
+AST may result in counterintuitive structures for reasoning and manipulation.
 
----
-
-## relay topology
-
-![h:350 relay](figures/topo-relay.png)
-
----
-
-# topologies pros and cons 1/2
-
-In **relay/P2P** the **evolution** of game state is **driven by each individual client**. Initial game states can differ. Incoming actions from remaining players ought to be respected but **it's impossible to enforce rules and order**.
-Can be a **viable** solution for **slow-paced games** where entities belonging to one player don't directly impact the remaining players (ex: ghost cars in racing games).
-Server work is limited to broadcasting events (relay) or none if P2P is used.
+As an example:
+Comments in our AST are second-class citizens. Their nodes can't be freely placed, but instead they're children of their surrounding node (leading/trailing array of comments).
+Whitespace-only lines aren't even captured on most JS ASTs.
+Recast cleverly mitigates some of this by only recomputing AST subtree nodes which have been changed.
 
 ---
 
-# topologies pros and cons 2/2
+# Be practical
 
-In **authoritative** modes state and state evolution are **completely driven by a dedicated server**.
-**Authoritative** is mandatory for any popular competitive game due to cheating.
-**Client-side prediction** is standard for AAA fast-paced games and its as more challenging as more player-driven entities interact between players (ex: Rocket League simpler than Counter Strike)
+A small piece of code may spawn a very complex AST.
+Your subject code may feature too much variability, resulting in super complex manipulating code.
+Time box your experience - not working? Drop it!
 
----
-
-<!-- _class: center -->
-
-## lockstep + rollback
-![h:500](figures/lockstep-rollback.png)
 
 ---
 
 <!-- _class: clouds -->
 
-# Other features
+# A Transformation recipe
+---
+
+# 1/2
+
+Create an example file with the desired code to change.
+Add some similar expressions which should be false positives.
+You may target a source code repo instead (make sure to start from committed state)
+
+Check the AST you get from it. [example, using recast](https://github.com/JosePedroDias/ts-transform/blob/main/recast-test.mjs)
+- What are the node types you want to look for and navigate from?
+- Which properties do you need to filter by to properly contain the change?
 
 ---
 
-# lobbies and match making
+# 2/2
 
-People don't join games at the exact same time. They may not even know each other.
-The **lobby** is a stage in the game where multiple players can **gather before the game starts**. It typically allows text **communication** and supplies a way for players to **invite other players** to take part in a shared game.
-With **match making** the game takes care of **pairing up players into actual games automatically** according to a set of criteria.
-They both solve the same problem but the latter relies on game services to do the heavy lifting.
+(if you need to ADD new nodes as part of the transformation)
+look for which node types you need to call and their arguments.
 
----
-# scripting capabilities
+Create your transformation code. Exercise each change you do:
+- find the proper nodes and print or tag them.
+- change them.
+- add / delete.
 
-**Game servers** tend to **run in combination** with well established **game engines** such as Unity, Unreal, Godot, Cocos2d, Gamemaker, Pixi, etc.
-Most of these support several programming languages.
-
-**External programming language support** therefore became a popular feature for game servers frameworks, so developers can **use the same language on both sides of the game logic**, client and server.
-
-A game server can do this by exposing a **clear API**, prepare logic modules, manage the language runtime and drive its code alongside its core.
-Ex: Nakama supports Go, JS and Lua.
-
----
-
-# available network transports
-
-- **non-web**
-    - **TCP** (reliable and ordered stream)
-    - **UDP** (unreliable discrete packets)
-
-- **web**
-    - **HTTP** (request/response)
-    - **Server Side Events** (server driven messages)
-    - **Web Sockets** (bi-directional messages)
-    - **WebRTC** (for P2P and supporting audio/video streaming)
-    - **WebTransport** (new standard, will unlock UDP-like comms)
+Now target a larger corpus.
 
 ---
 
 <!-- _class: clouds -->
 
-# Challenges
----
-
-# challenges 1/3
-
-- **avoid disparate state** (skipping events, non-deterministic events processing order, different RNGs, rounding errors, incorrect logic in code)
-
-- **minimize lag** (locally process ticks ahead, choose different topology, have animations easing change)
-
-- **respect the tick rate** (hard with many incoming events and/or complex simulations)
-
----
-
-# challenges 2/3
-
-- **cheating prevention efforts**
-    - make sure not to send clients state they're not supposed to see
-    - rate limit incoming events
-    - ignore events with out-of-range values
-    - ignore events with impossible sequences of events
-    - defend against invalid messages breaking the server
-
-- **provide matchmaking support** - expected to exist nowadays, very useful to help the game popularity network effect
-
----
-
-# challenges 3/3
-
-- **support dynamic game server allocation**, so servers scale at peak popularity and we don't go broke
-
-- **minimize server-side corrections*** - shares same problems as **avoid disparate state**
-
-- **support many players in the same game** (MMOs, requires additional architectural changes, out of scope)...
-
-\* for games with client-side prediction
+# Questions?
 
 ---
 
 <!-- _class: clouds -->
 
-# Existing Solutions
----
-
-# commercial game servers
-
-- Unity Multiplay: [1](https://unity.com/products/multiplay)
-- Epic Online Services: [1](https://dev.epicgames.com/en-US/services-games)
-- Microsoft Playfab: [1](https://playfab.com/) [2](https://docs.microsoft.com/en-gb/gaming/playfab/features/multiplayer/)
-- AWS Gamesparks: [1](https://www.gamesparks.com/) [2](https://docs.gamesparks.com/documentation/gamesparks-real-time/)
-- Photon: [1](https://www.photonengine.com/en-US/Quantum)
-- Improbable: [1](https://www.improbable.io/careers/game-technology)
-
----
-
-# OSS game servers
-
-- nakama [1](https://heroiclabs.com/docs/nakama/getting-started/index.html)
-- colyseus [1](https://www.colyseus.io)
-- lance [1](https://lance-gg.github.io) [2](https://github.com/lance-gg/lance) [3](https://lance-gg.github.io/docs_out/index.html)
-- glovjs [1](https://github.com/Jimbly/glovjs)
-- ezyfox-server [1]()
-
----
-
-# To know more
-
-- deterministic lockstep, playout delay buffer [1](https://gafferongames.com/post/deterministic_lockstep/) [2](https://meseta.medium.com/netcode-concepts-part-3-lockstep-and-rollback-f70e9297271)
-- the physics of rocket league [1](https://www.youtube.com/watch?v=ueEmiDM94IE)
-- GGPO [1](https://www.ggpo.net/) [2](https://github.com/pond3r/ggpo)
-- give me more! [1](https://gamenetcode.com/)
-
-<!--
-https://github.com/topics/multiplayer-game-server
-https://github.com/youngmonkeys/ezyfox-server
-https://www.smartfoxserver.com
--->
+# Thank you!
