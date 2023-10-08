@@ -40,9 +40,14 @@ const feed = {
         _version: '2.0',
         channel: {
             title: 'josepedrodias.com',
-            //description: 'desc',
+            description: '',
             language: 'en-us',
             link: BLOG_ROOT,
+            'atom:link': {
+                _rel: 'self',
+                _href: FEED_URL,
+                _type: 'application/rss+xml'
+            },
             item: [],
         }
     },
@@ -65,20 +70,22 @@ for (const mdFn of entries) {
     await writeFile(htmlFn, htmlContent);
 
     const fnStats = await stat(mdFn);
-    //console.log(fnStats);
     feed.rss.channel.item.push({
         title: postTitle,
         link: postUrl,
-        //pubDate: fnStats.ctime.toISOString(),
         pubDate: fnStats.ctime.toUTCString(),
-        //description: 'desc',
+        guid: {
+            _isPermaLink: false,
+            _t: fnWoExt,
+        },
+        comment: fnWoExt,
     });
 }
 
 {
     const htmlFn = 'index.html';
     let markdownContent = `# Posts:
-${feed.rss.channel.item.map(({ title, link, pubDate }) => `- [${pubDate.substring(0, 10)} - ${title}](${link})`).join('\n')}
+${feed.rss.channel.item.map(({ title, link, comment }) => `- [${comment} - ${title}](${link})`).join('\n')}
 `;
     const postTitle = markdownContent.split('\n')[0].substring(1).trim();
     const htmlContent = TPL

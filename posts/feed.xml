@@ -1,12 +1,16 @@
 <rss version="2.0">
   <channel>
     <title>josepedrodias.com</title>
+    <description></description>
     <language>en-us</language>
     <link>https://josepedrodias.com/posts</link>
+    <atom:link rel="self" href="https://josepedrodias.com/posts/feed.xml" type="application/rss+xml"></atom:link>
     <item>
       <title>Exploring Gaussian Splatting</title>
       <link>https://josepedrodias.com/posts/2023-10-08.html</link>
       <pubDate>Sun, 08 Oct 2023 16:45:58 GMT</pubDate>
+      <guid isPermaLink="false">2023-10-08</guid>
+      <!--2023-10-08-->
     </item>
   </channel>
 </rss>
