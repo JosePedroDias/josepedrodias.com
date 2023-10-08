@@ -546,26 +546,47 @@ let defaultViewMatrix = [
 let viewMatrix = defaultViewMatrix;
 
 async function main() {
-    const path = './nike';
+	const models = ['01-nike', '02-casa', '03-planta', '04-tree', '05-n32', '06-sofa'];
+	let path = './models/';
+	try {
+		const num = parseInt(location.hash.slice(1), 10);
+		if (isFinite(num)) path += models[num];
+		else throw new Error('asd');
+	} catch (_) {
+		//path += '01-nike'; // OK
+		path += '02-casa'; // OK
+		//path += '03-planta'; // OK AVERAGE
+		//path += '04-tree'; // OK MEDIOCRE!
+		//path += '05-n32'; // OK MEDIOCRE!
+		//path += '06-sofa'; // OK MEDIOCRE!
+	}
 
-    { // fetch cameras from json file
+	let carousel = true;
+	const params = new URLSearchParams(location.search);
+	/* try {
+		viewMatrix = JSON.parse(decodeURIComponent(location.hash.slice(1)));
+		carousel = false;
+	} catch (err) {} */
+	const url = `${path}/model.splat`;
+	/*const url = new URL(
+		// "nike.splat",
+		// location.href,
+		params.get("url") || "train.splat",
+		"https://huggingface.co/cakewalk/splat-data/resolve/main/",
+	);*/
+
+	{ // fetch cameras from json file
         const res = await fetch(`${path}/cameras.json`);
         const o = await res.json();
         cameras = o;
         camera = cameras[0];
     }
-    
-	let carousel = true;
-	try {
-		viewMatrix = JSON.parse(decodeURIComponent(location.hash.slice(1)));
-		carousel = false;
-	} catch (err) {}
-	const url = `${path}/cropped.splat`;
+
 	const req = await fetch(url, {
 		mode: "cors", // no-cors, *cors, same-origin
 		credentials: "omit", // include, *same-origin, omit
 	});
-	//console.log(req);
+	console.log(req);
 	if (req.status != 200)
 		throw new Error(req.status + " Unable to load " + req.url);
 
@@ -1067,14 +1088,14 @@ async function main() {
 		avgFps = avgFps * 0.9 + currentFps * 0.1;
 
 		if (vertexCount > 0) {
-			//document.getElementById("spinner").style.display = "none";
+			document.getElementById("spinner").style.display = "none";
 			// console.time('render')
 			gl.uniformMatrix4fv(u_view, false, actualViewMatrix);
 			ext.drawArraysInstancedANGLE(gl.TRIANGLE_FAN, 0, 4, vertexCount);
 			// console.timeEnd('render')
 		} else {
 			gl.clear(gl.COLOR_BUFFER_BIT);
-			//document.getElementById("spinner").style.display = "";
+			document.getElementById("spinner").style.display = "";
 			start = Date.now() + 2000;
 		}
 		const progress = (100 * vertexCount) / (splatData.length / rowLength);
@@ -1179,6 +1200,6 @@ async function main() {
 }
 
 main().catch((err) => {
-	//document.getElementById("spinner").style.display = "none";
+	document.getElementById("spinner").style.display = "none";
 	document.getElementById("message").innerText = err.toString();
 });

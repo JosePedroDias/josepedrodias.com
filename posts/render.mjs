@@ -3,8 +3,10 @@ import { readdir, readFile, writeFile, stat } from 'node:fs/promises';
 import { parse } from 'marked';
 import { XMLBuilder } from 'fast-xml-parser';
 
-//const BLOG_ROOT = 'https://josepedrodias.com/posts';
-const BLOG_ROOT = 'http://127.0.0.1:8080/posts';
+const SITE_HOST = 'https://josepedrodias.com';
+//const SITE_HOST = 'http://127.0.0.1:8080';
+
+const BLOG_ROOT = `${SITE_HOST}/posts`;
 const FEED_URL = `${BLOG_ROOT}/feed.xml`;
 
 const TPL = `<!DOCTYPE html>
@@ -59,6 +61,7 @@ for (const mdFn of entries) {
     const htmlFn = `${fnWoExt}.html`;
     const postUrl = `${BLOG_ROOT}/${htmlFn}`;
     let markdownContent = (await readFile(mdFn)).toString();
+    markdownContent = markdownContent.replace(/\{SITE_HOST\}/g, SITE_HOST);
     const postTitle = markdownContent.split('\n')[0].substring(1).trim();
     const htmlContent = TPL
         .replace('{TITLE}', `${postTitle} - josé pedro dias`)
