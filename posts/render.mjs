@@ -37,6 +37,7 @@ const builder = new XMLBuilder({
 // https://www.rssboard.org/files/sample-rss-2.xml
 const feed = {
     rss: {
+        '_xmlns:atom': 'http://www.w3.org/2005/Atom',
         _version: '2.0',
         channel: {
             title: 'josepedrodias.com',
