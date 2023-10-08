@@ -1,6 +1,12 @@
 <rss version="2.0">
-  <channel title="josepedrodias.com" language="en-us">
-    <link href="https://josepedrodias.com/posts/feed.xml" rel="self" type="application/rss+xml"></link>
-    <item title="Exploring Gaussian Splatting" link="https://josepedrodias.com/posts/2023-10-08.html" pubDate="2023-10-08T16:45:58.902Z"></item>
+  <channel>
+    <title>josepedrodias.com</title>
+    <language>en-us</language>
+    <link>https://josepedrodias.com/posts</link>
+    <item>
+      <title>Exploring Gaussian Splatting</title>
+      <link>https://josepedrodias.com/posts/2023-10-08.html</link>
+      <pubDate>2023-10-08T16:45:58.902Z</pubDate>
+    </item>
   </channel>
 </rss>

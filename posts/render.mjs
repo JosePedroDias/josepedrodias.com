@@ -28,7 +28,7 @@ const TPL = `<!DOCTYPE html>
 const builder = new XMLBuilder({
     ignoreAttributes: false,
     format: true,
-    attributeNamePrefix: '',
+    attributeNamePrefix: '_',
     textNodeName: '_t',
     commentPropName: 'comment',
 });
@@ -37,16 +37,12 @@ const builder = new XMLBuilder({
 // https://www.rssboard.org/files/sample-rss-2.xml
 const feed = {
     rss: {
-        version: '2.0',
+        _version: '2.0',
         channel: {
             title: 'josepedrodias.com',
             //description: 'desc',
             language: 'en-us',
-            link: {
-                href: FEED_URL,
-                rel: 'self',
-                type:'application/rss+xml',
-            },
+            link: BLOG_ROOT,
             item: [],
         }
     },
