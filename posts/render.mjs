@@ -1,0 +1,91 @@
+import { readdir, readFile, writeFile, stat } from 'node:fs/promises';
+
+import { parse } from 'marked';
+import { XMLBuilder } from 'fast-xml-parser';
+
+//const BLOG_ROOT = 'https://josepedrodias.com/posts';
+const BLOG_ROOT = 'http://127.0.0.1:8080/posts';
+const FEED_URL = `${BLOG_ROOT}/feed.xml`;
+
+const TPL = `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>{TITLE}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=0.8" />
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="/main.css">
+    <link rel="alternate" type="application/rss+xml" href="${FEED_URL}" />
+  </head>
+  <body class="blog">
+{BODY}  </body>
+</html>
+`;
+
+// https://github.com/NaturalIntelligence/fast-xml-parser/blob/HEAD/docs/v4/3.XMLBuilder.md
+const builder = new XMLBuilder({
+    ignoreAttributes: false,
+    format: true,
+    attributeNamePrefix: '',
+    textNodeName: '_t',
+    commentPropName: 'comment',
+});
+
+// https://www.rssboard.org/rss-specification
+// https://www.rssboard.org/files/sample-rss-2.xml
+const feed = {
+    rss: {
+        version: '2.0',
+        channel: {
+            title: 'josepedrodias.com',
+            //description: 'desc',
+            language: 'en-us',
+            link: {
+                href: FEED_URL,
+                rel: 'self',
+                type:'application/rss+xml',
+            },
+            item: [],
+        }
+    },
+};
+
+const dirContents = await readdir('.');
+const entries = dirContents.filter(fn => fn.indexOf('.md') !== -1);
+// console.log('entries', entries);
+
+for (const mdFn of entries) {
+    const fnWoExt = mdFn.substring(0, mdFn.lastIndexOf('.md'));
+    const htmlFn = `${fnWoExt}.html`;
+    const postUrl = `${BLOG_ROOT}/${htmlFn}`;
+    let markdownContent = (await readFile(mdFn)).toString();
+    const postTitle = markdownContent.split('\n')[0].substring(1).trim();
+    const htmlContent = TPL
+        .replace('{TITLE}', `${postTitle} - josé pedro dias`)
+        .replace(`{BODY}`, parse(markdownContent));
+    await writeFile(htmlFn, htmlContent);
+
+    const fnStats = await stat(mdFn);
+    //console.log(fnStats);
+    feed.rss.channel.item.push({
+        title: postTitle,
+        link: postUrl,
+        pubDate: fnStats.ctime.toISOString(),
+        //description: 'desc',
+    });
+}
+
+{
+    const htmlFn = 'index.html';
+    let markdownContent = `# Posts:
+${feed.rss.channel.item.map(({ title, link, pubDate }) => `- [${pubDate.substring(0, 10)} - ${title}](${link})`).join('\n')}
+`;
+    const postTitle = markdownContent.split('\n')[0].substring(1).trim();
+    const htmlContent = TPL
+        .replace('{TITLE}', `${postTitle} - josé pedro dias`)
+        .replace(`{BODY}`, parse(markdownContent));
+    await writeFile(htmlFn, htmlContent);
+}
+
+const xml = builder.build(feed);
+await writeFile('feed.xml', xml);
