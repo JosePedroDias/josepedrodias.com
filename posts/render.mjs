@@ -69,7 +69,8 @@ for (const mdFn of entries) {
     feed.rss.channel.item.push({
         title: postTitle,
         link: postUrl,
-        pubDate: fnStats.ctime.toISOString(),
+        //pubDate: fnStats.ctime.toISOString(),
+        pubDate: fnStats.ctime.toUTCString(),
         //description: 'desc',
     });
 }
