@@ -18,9 +18,15 @@ body.homepage {
 }
 
 body.blog {
-  margin: 5rem 10rem;
   font-size: 1.3rem;
   line-height: 2.1rem;
+  margin: 1rem 2rem;
+}
+
+@media only screen and (min-width: 992px) {
+  body.blog {
+    margin: 5rem 10rem;
+  }
 }
 
 .flex-container {

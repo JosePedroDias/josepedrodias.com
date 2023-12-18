@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { readdir, readFile, writeFile, stat } from 'node:fs/promises';
 
 import { parse } from 'marked';
@@ -56,6 +58,7 @@ const feed = {
 
 const dirContents = await readdir('.');
 const entries = dirContents.filter(fn => fn.indexOf('.md') !== -1);
+entries.reverse();
 // console.log('entries', entries);
 
 for (const mdFn of entries) {
@@ -70,11 +73,12 @@ for (const mdFn of entries) {
         .replace(`{BODY}`, parse(markdownContent));
     await writeFile(htmlFn, htmlContent);
 
-    const fnStats = await stat(mdFn);
+    //const fnStats = await stat(mdFn); console.log(mdFn, fnStats);
     feed.rss.channel.item.push({
         title: postTitle,
         link: postUrl,
-        pubDate: fnStats.ctime.toUTCString(),
+        //pubDate: fnStats.ctime.toUTCString(),
+        pubDate: new Date(fnWoExt).toUTCString(),
         guid: {
             _isPermaLink: false,
             _t: fnWoExt,
