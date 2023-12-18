@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>And then... Chess - josé pedro dias</title>
+    <meta name="viewport" content="width=device-width, initial-scale=0.8" />
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="/main.css">
+    <link rel="alternate" type="application/rss+xml" href="https://josepedrodias.com/posts/feed.xml" />
+  </head>
+  <body class="blog">
+<h1>And then... Chess</h1>
+<p>This year with the changes on twitter ownership I closed my account, moved to mastodon and started using youtube more to get the trends I had let go from twitter (and started paying for youtube premium as the ad-powered version is unbearably annoying to use).
+So, I started to listen to:</p>
+<ul>
+<li>Rick Beato, Tantacrul, El Stepario Siberiano, Dicodec (music)</li>
+<li>Primeagen, Strangeloop Conference, GDC, FasterThanLime, Computerphile, Two Minute Papers, PippenFTS, Real Civil Engineer, (tech and games)</li>
+<li>The NERF Guru, Olli Huttunen, (photogammetry/nerf/guassian splatting)</li>
+<li>Linus Boman, (design)</li>
+<li>Driver61, P1 with Matt and Tommy (f1)...</li>
+</ul>
+<p>And then Gotham Chess started appearing in my recommendations and I really enjoyed the way Levy talks about chess. Started his beginner course and got this idea of coding the rules and tactics as I learned then.
+My idea was never to code am optimized chess engine, but to write it out in the way that I reason about chess.
+It&#39;s been a hell of a journey, this last month!</p>
+<p>Chess is very challenging for the amount of possible actions you can take from each given board. It&#39;s also a game with and without hidden state. Let me explain: the pieces are there for us to see, but several concepts take several moves to materialize. Worse, checkmate, the main goal of a player to obtain, is nothing but drying out your opponent&#39;s legal moves. The king&#39;s movement is therefore not only driven by its position but you can&#39;t legally let yourself get captured as well. It&#39;s super fun and kinda hard to code.
+The pawns, at first sight looking to be the easiest piece to code its movement, really isn&#39;t. The fact that a pawn captures differently than it moves, the ability to promote to other pieces at the last rank and <em>en passant</em> make it the most complex piece to code.</p>
+<p>The rules are beautiful because their interactions promote so much additional geometry and intricacies... Most pieces slide - but not the knight. Bishops (and in a sense queens) can only explore half the board at most in a move. Pawns never move back and what they hide and unfold is as relevant as what they defend and attack <em>per se</em>.</p>
+<p>I started by coding a very simple Board structure. Then ways to compute all valid moves each piece can take from a given position.
+Then I introduced most of the nuances the rules enforce - when you can capture, how checks need to be addressed, castling rights, promotions, etc. Pretty fast I got to a point most of the game was working BUT there was a pass I was doing as I generated legal moves that needed to generate more legal moves from the next state, getting into an endless recursion...</p>
+<p>I then noticed that most pieces have their pieces generated regardless of the board state (ie, you need to trim down where a queen/rook/bishop can go sliding, but if the directions are structured, the max possible positions visited are driven from the &#39;from&#39; position alone).
+There are 2 exceptions, which I already named above:</p>
+<ul>
+<li>pawns move in opposite directions for whites and blacks (depend on the state&#39;s turn), they can only move/capture to positions occupied by your opponent and the <em>en passant</em> position is sort of a capture at state step -1/2. This means pawn behavior depends on the state.</li>
+<li>kings are a nightmare. They can&#39;t let themselves get captured (this needs to be accounted for regardless of the kings movement though, as moving other pieces of ours can also expose opposing pieces leading to checks). There&#39;s also castling which depends on several factors such as we being in check. King behavior depends on the state.</li>
+</ul>
+<p>A couple of things that I did which helped me in this journey were:</p>
+<ul>
+<li>creating unit tests (not really to TDD, more to make sure fixing stuff wasn&#39;t breaking other stuff. also, to mark TODO tests and capture problematic states and fix those);</li>
+<li>bringing StockFish (the most prominent open source chess engine) onboard to evaluate positions and check engine correction.</li>
+</ul>
+<p>One thing that helped me immensely from day 1 was that I started by supporting FEN board import and wanted to understand UCI protocol. FEN is really a lovely way to encode the chess state, everything is accounted for. As my coding progressed I praised it&#39;s simplicity and completeness more and more!</p>
+<p>Another thing I started to use from day 1 was PGN/SAN notation as the way to describe moves internally. This is a mistake - unlike FEN, any move in a PGN set of moves rely on the previous board state to be we understood - they summarize a lot! You lose the from position on most moves. The ability to annotate the check (+) relies on the analysis of the resulting state...
+So after my first attempt, at the second week I moved from PGN/SAN to the simpler format UCI uses: <code>[from][to][promoted piece]?</code> (unsure if this has a name).
+It&#39;s more verbose but simpler and regular. We can derive correct PGN/SAN easily from it with the full board state and moves history on demand.</p>
+<p>In the first week I focused on doing everything in NodeJS with the idea of exercising my engine in UCI with chess clients and/or via a terminal interface. I was able to do the latter successfully, with unicode characters, colors and whatnot, but as I wanted to debug and reason about states more and more, I needed to represent more information and it really backfired.
+So I relied on my knowledge of SVG and the super simple Mithril JS library and came up with a simple but effective chess visual UI. I slowly added features - drag and drop movement, themable SVG pieces, dynamic arrows to signal legal moves, circles and rings to mark threats, piece movement animations to help understand development. I tried to avoid all this in day 1 because I wanted to focus on chess core but the expressivity I got from assembling my visual UI really helped me understand how correctly the engine was behaving.</p>
+<p>Things I did internally to improve the engine: memoization. As most piece movements are driven by simple position and these are so frequently computed, memoizing pays off. Then, as the state tree is computed, driving valid moves out of a board is also something which pays off to memoize.</p>
+<p>I said I had bring StockFish to help me. That happened in several different ways. I was able to run StockFish both in the browser and NodeJS (with work to make it agnostic of the env).
+Since I was struggling to correctly compute all valid moves (initially due to performance reasons but now mostly because of a couple of lingering bugs), I found a way to have my engine and bot use either entirely my own logic or query SF for valid moves.
+I have a script which plays random moves, comparing the moves both generate from each board state - this approach has helped me fix issues these last few days.
+Another fun aspect of SF is seeing how optimized it is. It won&#39;t accept invalid boards - example: you can&#39;t ask SF to play from a board without 2 kings. This itself also helped me find badly generated outcomes - SF sometimes panicked and that lead me to test those problematic states.</p>
+<p>At this point I have a decently working chess UI and a poorly performing bot. It&#39;s competitive with my ELO because I still blunder so often, but we fail in completely differently ways. My challenge now is to find efficient ways to code key concepts of chess (a check, a pin, a skewer, ...) and then come up with a better heuristic to decide the best next move.</p>
+<p>I feel the project is already in a healthy enough state other people could fork it and drive it in different directions.</p>
+<ul>
+<li><a href="https://github.com/josepedrodias/chess">https://github.com/josepedrodias/chess</a></li>
+<li><a href="https://josepedrodias.github.io/chess/index.html">https://josepedrodias.github.io/chess/index.html</a></li>
+</ul>
+  </body>
+</html>
