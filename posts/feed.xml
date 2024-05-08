@@ -6,6 +6,13 @@
     <link>https://josepedrodias.com/posts</link>
     <atom:link rel="self" href="https://josepedrodias.com/posts/feed.xml" type="application/rss+xml"></atom:link>
     <item>
+      <title>Streaming learning Godot and Nakama</title>
+      <link>https://josepedrodias.com/posts/2024-05-09.html</link>
+      <pubDate>Thu, 09 May 2024 00:00:00 GMT</pubDate>
+      <guid isPermaLink="false">2024-05-09</guid>
+      <!--2024-05-09-->
+    </item>
+    <item>
       <title>And then... Chess</title>
       <link>https://josepedrodias.com/posts/2023-12-18.html</link>
       <pubDate>Mon, 18 Dec 2023 00:00:00 GMT</pubDate>
